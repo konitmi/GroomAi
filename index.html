@@ -2,7 +2,6 @@
 <html>
 <head>
   <title>GroomAI – Best Hairstyle Match</title>
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
   <style>
     body { font-family: Arial, sans-serif; text-align: center; background: #f8f8f8; padding: 20px; }
     h1 { color: #222; }
@@ -19,6 +18,8 @@
   <div id="debug" style="color:red;"></div>
   <div id="imageContainer"></div>
 
+  <!-- ✅ Correct script placement -->
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
   <script>
     const debug = msg => {
       document.getElementById('debug').innerText = msg;
