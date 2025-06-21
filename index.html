@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>GroomAI – Best Hairstyle Match</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; background: #f8f8f8; margin: 0; padding: 30px; }
+    h1 { color: #333; }
+    input { margin-top: 20px; }
+    #result, #suggestion { margin-top: 20px; font-size: 1.2rem; }
+    #suggestion { font-weight: bold; color: #222; }
+    img { max-width: 90%; height: auto; margin-top: 20px; border-radius: 12px; }
+  </style>
+</head>
+<body>
+  <h1>💇‍♂️ GroomAI – Best Hairstyle Match</h1>
+  <input type="file" id="imageUpload" accept="image/*">
+  <div id="result">Upload your selfie to get the best hairstyle for your face shape!</div>
+  <div id="suggestion"></div>
+  <div id="imageContainer"></div>
+
+  <script>
+    async function detectFace() {
+      const input = document.getElementById('imageUpload');
+      const img = await faceapi.bufferToImage(input.files[0]);
+      document.getElementById('imageContainer').innerHTML = "";
+      document.getElementById('imageContainer').append(img);
+
+      const detection = await faceapi.detectSingleFace(img).withFaceLandmarks();
+      if (!detection) {
+        document.getElementById('result').innerText = "Face not detected. Try a clearer selfie.";
+        return;
+      }
+
+      const points = detection.landmarks.positions;
+      const jawWidth = distance(points[4], points[12]);
+      const foreheadWidth = distance(points[19], points[24]);
+      const faceHeight = distance(points[8], points[27]);
+
+      const faceShape = classifyFaceShape(jawWidth, foreheadWidth, faceHeight);
+      document.getElementById('result').innerText = `Detected Face Shape: ${faceShape}`;
+      document.getElementById('suggestion').innerText = getHairstyle(faceShape);
+    }
+
+    function distance(p1, p2) {
+      return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+    }
+
+    function classifyFaceShape(jaw, forehead, height) {
+      const ratio = forehead / jaw;
+      const heightRatio = height / jaw;
+      if (ratio > 1.05 && heightRatio > 1.4) return "Long";
+      if (ratio < 0.9) return "Heart";
+      if (Math.abs(ratio - 1) < 0.1 && heightRatio > 1.5) return "Oval";
+      if (Math.abs(jaw - forehead) < 20 && heightRatio < 1.5) return "Square";
+      return "Round";
+    }
+
+    function getHairstyle(shape) {
+      const styles = {
+        "Oval": "Try a Quiff, Pompadour, or Slicked Back style.",
+        "Round": "Go for a High Fade or Angular Fringe.",
+        "Square": "Buzz Cut or Textured Crop suits you.",
+        "Heart": "Side Part or Medium Fringe is best.",
+        "Long": "Layered Flow or Side Swept looks great."
+      };
+      return styles[shape] || "Try a better image to get a match!";
+    }
+
+    document.getElementById('imageUpload').addEventListener('change', async () => {
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+      await faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+      detectFace();
+    });
+  </script>
+</body>
+</html>
