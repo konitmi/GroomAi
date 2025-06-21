@@ -1,0 +1,10 @@
+{
+  "weights": [
+    {
+      "paths": ["face_landmark_68_model-shard1"],
+      "weights": [
+        {"name": "fc1", "shape": [1, 1], "dtype": "float32"} // fake sample
+      ]
+    }
+  ]
+}
