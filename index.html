@@ -1,15 +1,40 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>GroomAI – Best Hairstyle Match</title>
-  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <title>💇‍♂️ GroomAI – Best Hairstyle Match</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; background: #f8f8f8; margin: 0; padding: 30px; }
-    h1 { color: #333; }
-    input { margin-top: 20px; }
-    #result, #suggestion { margin-top: 20px; font-size: 1.2rem; }
-    #suggestion { font-weight: bold; color: #222; }
-    img { max-width: 90%; height: auto; margin-top: 20px; border-radius: 12px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #f8f8f8;
+      margin: 0;
+      padding: 30px;
+    }
+    h1 {
+      color: #333;
+    }
+    input {
+      margin-top: 20px;
+    }
+    #result, #suggestion {
+      margin-top: 20px;
+      font-size: 1.2rem;
+    }
+    #suggestion {
+      font-weight: bold;
+      color: #222;
+    }
+    img {
+      max-width: 90%;
+      height: auto;
+      margin-top: 20px;
+      border-radius: 12px;
+    }
+    #error {
+      color: red;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
@@ -18,28 +43,34 @@
   <div id="result">Upload your selfie to find your best hairstyle match!</div>
   <div id="suggestion"></div>
   <div id="imageContainer"></div>
+  <div id="error"></div>
 
   <script>
     async function detectFace() {
-      const input = document.getElementById('imageUpload');
-      const img = await faceapi.bufferToImage(input.files[0]);
-      document.getElementById('imageContainer').innerHTML = "";
-      document.getElementById('imageContainer').append(img);
+      try {
+        const input = document.getElementById('imageUpload');
+        const img = await faceapi.bufferToImage(input.files[0]);
+        document.getElementById('imageContainer').innerHTML = "";
+        document.getElementById('imageContainer').append(img);
 
-      const detection = await faceapi.detectSingleFace(img).withFaceLandmarks();
-      if (!detection) {
-        document.getElementById('result').innerText = "❌ Face not detected. Try a clearer selfie.";
-        return;
+        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks();
+        if (!detection) {
+          document.getElementById('result').innerText = "❌ Face not detected. Try a clearer selfie.";
+          return;
+        }
+
+        const points = detection.landmarks.positions;
+        const jawWidth = distance(points[4], points[12]);
+        const foreheadWidth = distance(points[19], points[24]);
+        const faceHeight = distance(points[8], points[27]);
+
+        const faceShape = classifyFaceShape(jawWidth, foreheadWidth, faceHeight);
+        document.getElementById('result').innerText = `✅ Detected Face Shape: ${faceShape}`;
+        document.getElementById('suggestion').innerText = getHairstyle(faceShape);
+        document.getElementById('error').innerText = "";
+      } catch (err) {
+        document.getElementById('error').innerText = "❌ Error detecting face: " + err.message;
       }
-
-      const points = detection.landmarks.positions;
-      const jawWidth = distance(points[4], points[12]);
-      const foreheadWidth = distance(points[19], points[24]);
-      const faceHeight = distance(points[8], points[27]);
-
-      const faceShape = classifyFaceShape(jawWidth, foreheadWidth, faceHeight);
-      document.getElementById('result').innerText = `✅ Detected Face Shape: ${faceShape}`;
-      document.getElementById('suggestion').innerText = getHairstyle(faceShape);
     }
 
     function distance(p1, p2) {
@@ -58,22 +89,24 @@
 
     function getHairstyle(shape) {
       const styles = {
-        "Oval": "💇 Try a Quiff, Pompadour, or Slicked Back style.",
-        "Round": "💇 Go for a High Fade or Angular Fringe.",
-        "Square": "💇 Buzz Cut or Textured Crop suits you.",
-        "Heart": "💇 Side Part or Medium Fringe is best.",
-        "Long": "💇 Layered Flow or Side Swept looks great."
+        "Oval": "Try a Quiff, Pompadour, or Slicked Back style.",
+        "Round": "Go for a High Fade or Angular Fringe.",
+        "Square": "Buzz Cut or Textured Crop suits you.",
+        "Heart": "Side Part or Medium Fringe is best.",
+        "Long": "Layered Flow or Side Swept looks great."
       };
-      return styles[shape] || "❌ Try a better image to get a match!";
+      return styles[shape] || "Try a better image to get a match!";
     }
 
     document.getElementById('imageUpload').addEventListener('change', async () => {
       try {
-        await faceapi.nets.ssdMobilenetv1.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/models');
-        await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js/models');
+        await faceapi.nets.ssdMobilenetv1.loadFromUri("https://groomaimodels.netlify.app/models");
+        await faceapi.nets.faceLandmark68Net.loadFromUri("https://groomaimodels.netlify.app/models");
+        console.log("✅ Models loaded");
         detectFace();
       } catch (e) {
-        document.getElementById('result').innerText = "❌ Failed to load models: " + e.message;
+        document.getElementById('error').innerText = "❌ Failed to load models: " + e.message;
+        console.error("Model loading error:", e);
       }
     });
   </script>
