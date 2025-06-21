@@ -1,0 +1,14 @@
+{
+  "weights": [
+    {
+      "paths": ["ssd_mobilenetv1_model-shard1"],
+      "weights": [
+        {
+          "name": "conv1/weights",
+          "shape": [1, 1],
+          "dtype": "float32"
+        }
+      ]
+    }
+  ]
+}
