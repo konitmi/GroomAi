@@ -7,7 +7,7 @@
     body { font-family: Arial, sans-serif; text-align: center; background: #f8f8f8; padding: 20px; }
     h1 { color: #222; }
     input { margin-top: 20px; }
-    #result, #suggestion { margin-top: 20px; font-size: 1.2rem; font-weight: bold; }
+    #result, #suggestion, #debug { margin-top: 20px; font-size: 1.1rem; font-weight: bold; }
     img { max-width: 300px; border-radius: 10px; margin-top: 20px; }
   </style>
 </head>
@@ -16,32 +16,41 @@
   <input type="file" id="imageUpload" accept="image/*">
   <div id="result">Upload your selfie to find your best hairstyle match!</div>
   <div id="suggestion"></div>
+  <div id="debug" style="color:red;"></div>
   <div id="imageContainer"></div>
 
   <script>
+    const debug = msg => {
+      document.getElementById('debug').innerText = msg;
+      console.log(msg);
+    };
+
     async function detectFace() {
-      console.log("🧠 Detecting...");
-      const input = document.getElementById('imageUpload');
-      if (!input.files[0]) return;
+      try {
+        const input = document.getElementById('imageUpload');
+        if (!input.files[0]) return;
 
-      const img = await faceapi.bufferToImage(input.files[0]);
-      document.getElementById('imageContainer').innerHTML = "";
-      document.getElementById('imageContainer').append(img);
+        const img = await faceapi.bufferToImage(input.files[0]);
+        document.getElementById('imageContainer').innerHTML = "";
+        document.getElementById('imageContainer').append(img);
 
-      const detection = await faceapi.detectSingleFace(img).withFaceLandmarks();
-      if (!detection) {
-        document.getElementById('result').innerText = "❌ Face not detected. Try a better selfie.";
-        return;
+        const detection = await faceapi.detectSingleFace(img).withFaceLandmarks();
+        if (!detection) {
+          document.getElementById('result').innerText = "❌ Face not detected. Try a better selfie.";
+          return;
+        }
+
+        const points = detection.landmarks.positions;
+        const jaw = distance(points[4], points[12]);
+        const forehead = distance(points[19], points[24]);
+        const height = distance(points[8], points[27]);
+
+        const shape = classify(jaw, forehead, height);
+        document.getElementById('result').innerText = `✅ Face Shape: ${shape}`;
+        document.getElementById('suggestion').innerText = getStyle(shape);
+      } catch (err) {
+        debug("❌ Error: " + err.message);
       }
-
-      const points = detection.landmarks.positions;
-      const jaw = distance(points[4], points[12]);
-      const forehead = distance(points[19], points[24]);
-      const height = distance(points[8], points[27]);
-
-      const shape = classify(jaw, forehead, height);
-      document.getElementById('result').innerText = `✅ Face Shape: ${shape}`;
-      document.getElementById('suggestion').innerText = getStyle(shape);
     }
 
     function distance(p1, p2) {
@@ -69,9 +78,15 @@
     }
 
     document.getElementById('imageUpload').addEventListener('change', async () => {
-      await faceapi.nets.ssdMobilenetv1.loadFromUri('https://groomaimodels.netlify.app/models');
-      await faceapi.nets.faceLandmark68Net.loadFromUri('https://groomaimodels.netlify.app/models');
-      detectFace();
+      try {
+        debug("🧠 Loading models...");
+        await faceapi.nets.ssdMobilenetv1.loadFromUri('https://groomaimodels.netlify.app/models');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('https://groomaimodels.netlify.app/models');
+        debug("✅ Models loaded.");
+        detectFace();
+      } catch (e) {
+        debug("❌ Failed to load models: " + e.message);
+      }
     });
   </script>
 </body>
