@@ -38,8 +38,13 @@
 
   <script>
     async function detectFace() {
+      console.log("📸 Starting face detection...");
+
       const input = document.getElementById('imageUpload');
-      if (!input.files || input.files.length === 0) return;
+      if (!input.files || input.files.length === 0) {
+        console.log("No image selected.");
+        return;
+      }
 
       const img = await faceapi.bufferToImage(input.files[0]);
       document.getElementById('imageContainer').innerHTML = "";
@@ -47,10 +52,13 @@
 
       const detection = await faceapi.detectSingleFace(img).withFaceLandmarks();
       if (!detection) {
+        console.log("❌ Face not detected.");
         document.getElementById('result').innerText = "Face not detected. Try a clearer selfie.";
         document.getElementById('suggestion').innerText = "";
         return;
       }
+
+      console.log("✅ Face detected.");
 
       const points = detection.landmarks.positions;
       const jawWidth = distance(points[4], points[12]);
@@ -58,6 +66,8 @@
       const faceHeight = distance(points[8], points[27]);
 
       const faceShape = classifyFaceShape(jawWidth, foreheadWidth, faceHeight);
+      console.log("📐 Calculated Face Shape:", faceShape);
+
       document.getElementById('result').innerText = `Detected Face Shape: ${faceShape}`;
       document.getElementById('suggestion').innerText = getHairstyle(faceShape);
     }
@@ -89,8 +99,10 @@
     }
 
     document.getElementById('imageUpload').addEventListener('change', async () => {
+      console.log("🧠 Loading models...");
       await faceapi.nets.ssdMobilenetv1.loadFromUri('https://groomaimodels.netlify.app/models');
       await faceapi.nets.faceLandmark68Net.loadFromUri('https://groomaimodels.netlify.app/models');
+      console.log("✅ Models loaded.");
       detectFace();
     });
   </script>
