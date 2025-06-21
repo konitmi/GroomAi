@@ -68,8 +68,8 @@
     }
 
     document.getElementById('imageUpload').addEventListener('change', async () => {
-      await faceapi.nets.ssdMobilenetv1.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
-      await faceapi.nets.faceLandmark68Net.loadFromUri('https://justadudewhohacks.github.io/face-api.js/models');
+      await faceapi.nets.ssdMobilenetv1.loadFromUri('models');
+      await faceapi.nets.faceLandmark68Net.loadFromUri('models');
       detectFace();
     });
   </script>
