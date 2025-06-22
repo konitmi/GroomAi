@@ -2,81 +2,94 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>💇 GroomAI – Best Hairstyle Match</title>
+  <title>💇 GroomAI – Face Shape to Hairstyle</title>
   <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
   <style>
     body {
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      background: #f9f9f9;
+      background: #fafafa;
       text-align: center;
+      padding: 30px;
     }
     input[type="file"] {
-      margin: 10px;
+      margin-top: 15px;
     }
     img {
-      max-width: 300px;
       margin-top: 20px;
+      max-width: 300px;
+    }
+    #result {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
     }
     .error {
       color: red;
-      margin-top: 10px;
     }
   </style>
 </head>
 <body>
   <h1>💇 GroomAI</h1>
-  <p>Upload your selfie to find your best hairstyle match!</p>
+  <p>Upload a selfie to get the best hairstyle for your face shape</p>
   <input type="file" id="imageUpload" accept="image/*" />
-  <p class="error" id="error"></p>
-  <img id="preview" src="" alt="Preview" style="display: none;" />
+  <div id="result" class="error">Loading models...</div>
+  <img id="preview" src="" style="display:none" />
 
   <script>
-    const imageUpload = document.getElementById("imageUpload");
-    const errorEl = document.getElementById("error");
-    const previewImg = document.getElementById("preview");
+    const MODEL_URL = "https://groomaimodels.netlify.app/models";
 
     async function loadModels() {
       try {
-        await faceapi.nets.ssdMobilenetv1.loadFromUri("https://groomaimodels.netlify.app/models");
-        await faceapi.nets.faceLandmark68Net.loadFromUri("https://groomaimodels.netlify.app/models");
-        console.log("✅ Models loaded");
+        await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+        await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+        document.getElementById("result").innerText = "✅ Models loaded. Now upload your photo!";
       } catch (err) {
-        errorEl.innerText = "❌ Failed to load models: " + err.message;
-        throw err;
+        document.getElementById("result").innerText = "❌ Failed to load models: " + err.message;
       }
     }
 
-    async function detectFace(image) {
-      const detections = await faceapi.detectSingleFace(image).withFaceLandmarks();
-      if (detections) {
-        errorEl.innerText = "✅ Face detected! (Now implement your logic here)";
-      } else {
-        errorEl.innerText = "❌ Face not detected. Try another photo.";
-      }
+    function getFaceShape(landmarks) {
+      const jaw = landmarks.getJawOutline();
+      const chinWidth = Math.abs(jaw[0].x - jaw[16].x);
+      const cheekboneWidth = Math.abs(jaw[3].x - jaw[13].x);
+      const jawlineLength = Math.abs(jaw[5].y - jaw[11].y);
+
+      if (chinWidth > cheekboneWidth * 1.2) return "Square";
+      if (cheekboneWidth > chinWidth && jawlineLength < cheekboneWidth) return "Oval";
+      if (jawlineLength > chinWidth) return "Round";
+      return "Heart";
     }
 
-    imageUpload.addEventListener("change", async () => {
-      errorEl.innerText = "";
+    function getHairstyle(faceShape) {
+      const styles = {
+        Square: "Textured Crop, Side Part, Undercut",
+        Oval: "Buzz Cut, Pompadour, Quiff",
+        Round: "Faux Hawk, Spiky Top, Flat Top",
+        Heart: "Side Fringe, Layered Top, Low Fade"
+      };
+      return styles[faceShape] || "Classic Taper or Crew Cut";
+    }
+
+    document.getElementById("imageUpload").addEventListener("change", async () => {
       const file = imageUpload.files[0];
-      if (!file) return;
-
       const img = await faceapi.bufferToImage(file);
-      previewImg.src = img.src;
-      previewImg.style.display = "block";
+      document.getElementById("preview").src = img.src;
+      document.getElementById("preview").style.display = "block";
+      document.getElementById("result").innerText = "🔍 Detecting...";
 
-      try {
-        await loadModels();
-        await detectFace(img);
-      } catch (e) {
-        console.log(e);
+      const detections = await faceapi.detectSingleFace(img).withFaceLandmarks();
+
+      if (!detections) {
+        document.getElementById("result").innerText = "❌ Face not detected.";
+        return;
       }
+
+      const faceShape = getFaceShape(detections.landmarks);
+      const suggestion = getHairstyle(faceShape);
+      document.getElementById("result").innerHTML = `✅ Face Shape: <b>${faceShape}</b><br>💇 Suggested Styles: <i>${suggestion}</i>`;
     });
+
+    loadModels();
   </script>
 </body>
 </html>
